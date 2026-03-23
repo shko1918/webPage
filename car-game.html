@@ -3,106 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Car Roaming Game</title>
+    <title>2D Game</title>
     <style>
-        body { margin: 0; }
-        canvas { display: block; }
-        #hud { position: absolute; color: white; font-size: 20px; }
+        canvas {
+            border: 1px solid black;
+            background-color: lightgray;
+            display: block;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
-    <div id="hud">
-        Speed: <span id="speed"></span> km/h<br>
-        Position: <span id="position"></span>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
     <script>
-        let scene, camera, renderer, car, speed = 0, position = { x: 0, z: 0 };
-        const obstacles = [];
-        const terrain = createTerrain();
+        const canvas = document.getElementById('gameCanvas');
+        const context = canvas.getContext('2d');
+        const square = {
+            x: canvas.width / 2 - 15,
+            y: canvas.height / 2 - 15,
+            size: 30,
+            speed: 2
+        };
 
-        init();
+        let keys = {};
 
-        function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-            createCar();
-            createObstacles();
-            scene.add(terrain);
-            animate();
-            window.addEventListener('resize', onWindowResize);
-            document.addEventListener('keydown', onKeyDown);
-            document.addEventListener('keyup', onKeyUp);
+        window.addEventListener('keydown', (event) => keys[event.key] = true);
+        window.addEventListener('keyup', (event) => keys[event.key] = false);
+
+        function update() {
+            if (keys['ArrowUp'] || keys['w']) square.y -= square.speed;
+            if (keys['ArrowDown'] || keys['s']) square.y += square.speed;
+            if (keys['ArrowLeft'] || keys['a']) square.x -= square.speed;
+            if (keys['ArrowRight'] || keys['d']) square.x += square.speed;
+
+            square.x = Math.max(0, Math.min(canvas.width - square.size, square.x));
+            square.y = Math.max(0, Math.min(canvas.height - square.size, square.y));
         }
 
-        function createCar() {
-            const geometry = new THREE.BoxGeometry(1, 0.5, 2);
-            const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            car = new THREE.Mesh(geometry, material);
-            scene.add(car);
-            camera.position.set(0, 2, 5);
-            camera.lookAt(car.position);
+        function draw() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.fillStyle = 'blue';
+            context.fillRect(square.x, square.y, square.size, square.size);
         }
 
-        function createObstacles() {
-            for (let i = 0; i < 5; i++) {
-                const obstacle = new THREE.Mesh(
-                    new THREE.BoxGeometry(1, 1, 1),
-                    new THREE.MeshBasicMaterial({ color: 0x0000ff })
-                );
-                obstacle.position.set(Math.random() * 20 - 10, 0.5, Math.random() * 20 - 10);
-                obstacles.push(obstacle);
-                scene.add(obstacle);
-            }
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
         }
 
-        function createTerrain() {
-            const geometry = new THREE.PlaneGeometry(50, 50);
-            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
-            const terrain = new THREE.Mesh(geometry, material);
-            terrain.rotation.x = - Math.PI / 2;
-            return terrain;
-        }
-
-        let forward = false, backward = false;
-        function onKeyDown(event) {
-            switch(event.key) {
-                case 'w': forward = true; break;
-                case 's': backward = true; break;
-            }
-        }
-
-        function onKeyUp(event) {
-            switch(event.key) {
-                case 'w': forward = false; break;
-                case 's': backward = false; break;
-            }
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if (forward) speed += 0.1;
-            if (backward) speed -= 0.1;
-            speed = Math.max(0, Math.min(speed, 100));
-            position.x += speed * 0.01 * Math.sin(car.rotation.y);
-            position.z -= speed * 0.01 * Math.cos(car.rotation.y);
-            car.position.set(position.x, 0.25, position.z);
-            car.rotation.y += (forward ? 0.01 : 0) - (backward ? 0.01 : 0);
-            document.getElementById('speed').innerText = speed.toFixed(2);
-            document.getElementById('position').innerText = `(${position.x.toFixed(2)}, ${position.z.toFixed(2)})`;
-            camera.position.set(car.position.x, car.position.y + 2, car.position.z + 5);
-            camera.lookAt(car.position);
-            renderer.render(scene, camera);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        gameLoop();
     </script>
 </body>
 </html>
